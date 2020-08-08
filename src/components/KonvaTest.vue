@@ -3,14 +3,22 @@
     <v-stage
       ref="stage"
       :config="configKonva"
-      @dragstart="handleDragstart"
-      @dragend="handleDragend"
     >
       <v-layer ref="layer">
+
+        <v-text
+          :config="{
+            text: this.cardInfo,
+            x: configKonva.width-150,
+            y: configKonva.height/4,
+            fontSize: 20
+          }"
+        />     
         <v-rect
           v-for="field in fieldColection"
           :key="field.id"
           :config="{
+            id:field.id,
             name:'rect',
             x: field.x,
             y: field.y,
@@ -25,10 +33,14 @@
         <v-image
           v-for="item in cardColection"
           :key="item.id"
+          @mouseover="showCardInfo(item)"
+          @mouseleave="cardInfo = ''"
+          @dragstart="handleDragstart"
+          @dragend="handleDragend"
           :config="{
             x: item.x,
             y: item.y,
-            image: image,
+            image: item.image,
             rotation: item.rotation,
             id: item.id,
             numPoints: 5,
@@ -60,46 +72,57 @@ export default {
       table: [],
       cardColection: [],
       fieldColection: [],
-      dragItemId: null,
-      fieldToPutId: null,
       dragItemPositionHolder: null,
+      dragItemId: null,
+      cardHolder: null,
       image: null,
       filedToPutHolder: null,
       configKonva: {
         width: width,
         height: height,
       },
+      showInfo:false,
+      cardInfo:"",
     };
   },
   methods: {
     getTable() {
       this.socket.emit("getTable");
     },
-    putCard(itemId, fieldId) {
+    // getCardPosition(card){
+    // },
+    putCard(itemId, fieldId, numOnLine=0,numOfCards=1) {
       const card = this.cardColection.find((i) => i.id === itemId);
       const field = this.fieldColection.find((i) => i.id === fieldId);
       card.isOnHand = false;
-      card.x = field.x;
+      const first=field.width/2-card.width*numOfCards/2
+      card.x = field.x+first+numOnLine*card.width;
       card.y = field.y;
-      this.refreshBoard();
+      this.moveCardTop(card.id)
     },
-    //mapTable()
-    drawTable() {
+    mapTable() {
       if(this.table){
       for (let i = 0; i < this.table.length; i++) {
         try{
-          //let isdsad;
         if (typeof this.table[i] != undefined) {
-            for (let j = 0; j < this.table[i].length; j++) {
-              this.putCard(this.table[i][j],++i)
+            for (let j = 0; j <= this.table[i].length; j++) {
+              const idx=i+1;
+              //check id
+              const cardFromServerId = this.table[i][j].id;
+              const card = this.cardColection.find((i) => i.id === cardFromServerId);
+              if(card){
+                this.putCard(card.id,idx,j,this.table[i].length);
+              }
             }
         }
         }catch(err){
           //catch undefinded
-          //console.log(this.table[i] === undefined);
+          //console.log(err);
         }
       }
       }
+      this.socket.emit("updateTable",this.table)
+      this.refreshBoard()
     },
     refreshBoard() {
       const width = window.innerWidth;
@@ -136,52 +159,61 @@ export default {
         }
       }
       //size and positon of Cards
+
+      
+
       let widthOfCard = width * 0.1;
       let heightOfCard = height * 0.1;
+      let scaleOfCard=height*0.00065;
       for (let n = 0; n < 5; n++) {
         if (this.cardColection[n].isOnHand == false) {
           this.cardColection[n] = {
             id: this.cardColection[n].id,
             isOnHand: false,
+            image:this.image,
             x: this.cardColection[n].x,
             y: this.cardColection[n].y,
             width: widthOfCard,
             height: heightOfCard,
-            scale: 0.5,
+            scale: scaleOfCard,
             rotation: 0,
           };
         } else {
           this.cardColection[n] = {
             id: this.cardColection[n].id,
             isOnHand: true,
+            image:this.image,
             x: width * 0.1 + widthOfCard * n,
             y: height - heightOfCard,
             width: widthOfCard,
             height: heightOfCard,
-            scale: 0.5,
+            scale: scaleOfCard,
             rotation: 0,
           };
+          //console.log(this.cardColection[n]);
         }
       }
     },
-    move(dragItemId) {
-      const clientData = { dragItemId: dragItemId, fieldId: this.fieldToPutId };
-      this.socket.emit("put", clientData);
+    showCardInfo(item){
+      this.cardInfo=item.id
+    },
+    moveCardTop(cardId){
+      // move current element to the top:
+      this.cardHolder = this.cardColection.find((i) => i.id === cardId);
+      const index = this.cardColection.indexOf(this.cardHolder);
+      this.cardColection.splice(index, 1);
+      this.cardColection.push(this.cardHolder);
     },
     handleDragstart(e) {
       // save drag element:
       this.dragItemId = e.target.id();
       this.dragItemPositionHolder = e.target.absolutePosition();
-      // move current element to the top:
-      const item = this.cardColection.find((i) => i.id === this.dragItemId);
-      const index = this.cardColection.indexOf(item);
-      this.cardColection.splice(index, 1);
-      this.cardColection.push(item);
+      this.moveCardTop(this.dragItemId)
     },
     haveIntersection(r1, r2) {
       return !(
-        r2.x > r1.x + r1.width / 2 ||
-        r2.x + r2.width / 2 < r1.x ||
+        r2.x > r1.x + r1.width ||
+        r2.x + r2.width < r1.x ||
         r2.y > r1.y + r1.height / 2 ||
         r2.y + r2.height / 2 < r1.y
       );
@@ -193,9 +225,7 @@ export default {
         if (
           this.haveIntersection(rectsCollection[i].getClientRect(), cardToPut)
         ) {
-          let field = rectsCollection[i].getClientRect();
-          this.filedToPutHolder = field;
-          this.fieldToPutId = this.fieldColection[i].id;
+          this.filedToPutHolder = this.fieldColection[i];
           return true;
         }
       }
@@ -204,11 +234,13 @@ export default {
     handleDragend(e) {
       if (this.checkIsCardOnRect(e.target)) {
         const field = this.filedToPutHolder;
-        e.target.absolutePosition({
-          x: field.x,
-          y: field.y,
-        });
-        this.move(this.dragItemId);
+        //change card position to dropped position
+        const {x, y} = e.target.absolutePosition();
+        this.cardHolder.x=x
+        this.cardHolder.y=y
+        this.move(this.cardHolder, field,this.table);
+        this.getTable();
+        this.dragItemId=null
       } else {
         e.target.absolutePosition({
           x: this.dragItemPositionHolder.x,
@@ -216,6 +248,11 @@ export default {
         });
         this.dragItemId = null;
       }
+    },
+    move(card,field) {
+      const id = field.id
+      const clientData = { card: card, fieldId: id,field:field};
+      this.socket.emit("put", clientData);
     },
   },
   mounted() {
@@ -245,7 +282,7 @@ export default {
     }
     //endOfTestingBoard
     //resize listener
-    window.addEventListener("resize", this.drawTable);
+    window.addEventListener("resize", this.mapTable);
     this.refreshBoard();
   },
   created() {
@@ -257,17 +294,9 @@ export default {
       this.image = image;
     };
 
-    this.socket.on("updateBoard", (dataFromServer) => {
-      //console.log(dataFromServer);
-      if (this.dragItemId == dataFromServer.dragItemId) this.dragItemId = null;
-      else {
-        this.putCard(dataFromServer.dragItemId, dataFromServer.fieldId);
-      }
-    });
-
     this.socket.on("sendTable", (table) => {
       this.table = table;
-      this.drawTable(this.table.length);
+      this.mapTable(this.table.length);
     });
 
     //Get Table
