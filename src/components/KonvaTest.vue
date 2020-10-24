@@ -1,11 +1,12 @@
 <template>
   <div>
+    <!-- Tag to refer canvas from konvajs-->
     <v-stage
       ref="stage"
       :config="configKonva"
     >
       <v-layer ref="layer">
-
+         <!-- TODO function to divine width and height to procent values-->
         <v-text
           :config="{
             text: this.cardInfo,
@@ -14,7 +15,9 @@
             fontSize: 20
           }"
         />
+         <!-- It's a tag to place loop of game-->
         <v-group ref="line-group" v-for="field in fieldColection" v-bind:key="field.id">
+           <!-- placking a value (to implement) of a row-->
         <v-text
           :config="{
             id:field.id,
@@ -24,7 +27,8 @@
             y: field.y,
             fontSize: 20
           }"
-        />    
+        /> 
+        <!-- Its a implement of fields-->   
         <v-rect
           :config="{
             id:field.id,
@@ -41,6 +45,7 @@
         >
         </v-rect>
         </v-group>
+        <!-- Its a implement of card--> 
         <v-image
           v-for="item in cardColection"
           :key="item.id"
@@ -76,6 +81,12 @@
 import io from "socket.io-client";
 const width = window.innerWidth;
 const height = window.innerHeight;
+/** returns a value of variables to html
+ *
+ * 
+ * 
+ * 
+*/
 export default {
   data() {
     return {
@@ -96,9 +107,13 @@ export default {
     };
   },
   methods: {
+    /** Sending request to server to get table
+    */
     getTable() {
       this.socket.emit("getTable");
     },
+
+    //method to handle a placing card to field
     putCard(itemId, fieldId, numOnLine=0,numOfCards=1) {
       const card = this.cardColection.find((i) => i.id === itemId);
       const field = this.fieldColection.find((i) => i.id === fieldId);
@@ -106,13 +121,14 @@ export default {
       card.x = field.x+first+numOnLine*card.width;
       card.y = field.y;
       this.moveCardTop(card.id)
-      //map from server now is on hand dosen't exist
+      //TODO implement not draggable card - SERVER
       card.isDraggable = this.changeIsDraggable(card);
     },
     changeIsDraggable(card){
       if(card.id==10) return true
       return false
     },
+    // handler of started game -> host join if u get disconnect | synchronize game
     mapTable() {
       if(this.table){
       for (let i = 0; i < this.table.length; i++) {
@@ -207,6 +223,7 @@ export default {
         }
       }
     },
+    // TODO creating a card object
     showCardInfo(item){
       this.cardInfo=item.power
     },
@@ -231,6 +248,7 @@ export default {
         r2.y + r2.height / 2 < r1.y
       );
     },
+    //Check if card is on field 
     checkIsCardOnRect(card) {
       let cardToPut = card.getClientRect();
       const rectsCollection = this.$refs.stage.getStage().find(".rect");
@@ -299,6 +317,7 @@ export default {
     window.addEventListener("resize", this.mapTable);
     this.refreshBoard();
   },
+  // Info will be from db and make a method to fetch all;
   created() {
     this.socket = io("http://localhost:3000");
     const image = new window.Image();
