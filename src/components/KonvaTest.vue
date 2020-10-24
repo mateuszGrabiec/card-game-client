@@ -13,10 +13,19 @@
             y: configKonva.height/4,
             fontSize: 20
           }"
-        />     
+        />
+        <v-group ref="line-group" v-for="field in fieldColection" v-bind:key="field.id">
+        <v-text
+          :config="{
+            id:field.id,
+            name:'pointsField',
+            text: 'x',
+            x: field.x-50,
+            y: field.y,
+            fontSize: 20
+          }"
+        />    
         <v-rect
-          v-for="field in fieldColection"
-          :key="field.id"
           :config="{
             id:field.id,
             name:'rect',
@@ -29,7 +38,9 @@
             cornerRadius: 10,
             cardsId:[]
         }"
-        ></v-rect>
+        >
+        </v-rect>
+        </v-group>
         <v-image
           v-for="item in cardColection"
           :key="item.id"
@@ -43,11 +54,10 @@
             image: item.image,
             rotation: item.rotation,
             id: item.id,
-            numPoints: 5,
             innerRadius: 30,
             outerRadius: 50, fill: '#89b717',
             opacity: 0.8,
-            draggable: true,
+            draggable: item.isDraggable,
             scaleX: dragItemId === item.id ? item.scale * 1.2 : item.scale,
             scaleY: dragItemId === item.id ? item.scale * 1.2 : item.scale,
             shadowColor: 'black',
@@ -89,16 +99,19 @@ export default {
     getTable() {
       this.socket.emit("getTable");
     },
-    // getCardPosition(card){
-    // },
     putCard(itemId, fieldId, numOnLine=0,numOfCards=1) {
       const card = this.cardColection.find((i) => i.id === itemId);
       const field = this.fieldColection.find((i) => i.id === fieldId);
-      card.isOnHand = false;
       const first=field.width/2-card.width*numOfCards/2
       card.x = field.x+first+numOnLine*card.width;
       card.y = field.y;
       this.moveCardTop(card.id)
+      //map from server now is on hand dosen't exist
+      card.isDraggable = this.changeIsDraggable(card);
+    },
+    changeIsDraggable(card){
+      if(card.id==10) return true
+      return false
     },
     mapTable() {
       if(this.table){
@@ -158,18 +171,17 @@ export default {
           };
         }
       }
+
       //size and positon of Cards
-
-      
-
       let widthOfCard = width * 0.1;
       let heightOfCard = height * 0.1;
       let scaleOfCard=height*0.00065;
       for (let n = 0; n < 5; n++) {
-        if (this.cardColection[n].isOnHand == false) {
+        if (this.cardColection[n].isDraggable == false) {
           this.cardColection[n] = {
             id: this.cardColection[n].id,
-            isOnHand: false,
+            power:this.cardColection[n].power,
+            isDraggable: false,
             image:this.image,
             x: this.cardColection[n].x,
             y: this.cardColection[n].y,
@@ -181,7 +193,8 @@ export default {
         } else {
           this.cardColection[n] = {
             id: this.cardColection[n].id,
-            isOnHand: true,
+            power:this.cardColection[n].power,
+            isDraggable: true,
             image:this.image,
             x: width * 0.1 + widthOfCard * n,
             y: height - heightOfCard,
@@ -195,7 +208,7 @@ export default {
       }
     },
     showCardInfo(item){
-      this.cardInfo=item.id
+      this.cardInfo=item.power
     },
     moveCardTop(cardId){
       // move current element to the top:
@@ -264,9 +277,10 @@ export default {
         y: height - 200,
         height: window.innerWidth * 0.1,
         width: window.innerWidth * 0.1,
-        isOnHand: true,
+        isDraggable: true,
         rotation: 2 * 180,
         scale: 0.5,
+        power: (1 + n) * 10
       });
     }
     for (let n = 0; n < 4; n++) {
