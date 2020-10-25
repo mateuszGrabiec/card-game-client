@@ -121,11 +121,13 @@ export default {
       card.x = field.x+first+numOnLine*card.width;
       card.y = field.y;
       this.moveCardTop(card.id)
-      //TODO implement not draggable card - SERVER
-      card.isDraggable = this.changeIsDraggable(card);
+      //TODO implement not draggable card - 
+      //change implementation becouse this cousing bug
+      //maybe other prop ?
+      card.isDraggable = this.changeIsDraggable();
     },
-    changeIsDraggable(card){
-      if(card.id==10) return true
+    changeIsDraggable(){
+      //get prop is card can change postinion from server
       return false
     },
     // handler of started game -> host join if u get disconnect | synchronize game
