@@ -5,6 +5,7 @@ import Register from '../views/Register.vue'
 
 
   const router = new VueRouter({
+    mode: 'history',
     routes: [
       { path: '/', component: Main },
       { path: '/login', component: Login },
