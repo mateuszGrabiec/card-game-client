@@ -321,7 +321,7 @@ export default {
   },
   // Info will be from db and make a method to fetch all;
   created() {
-    this.socket = io("http://localhost:3000");
+    this.socket = io(process.env.VUE_APP_API);
     const image = new window.Image();
     image.src = "https://konvajs.org/assets/yoda.jpg";
     image.onload = () => {
