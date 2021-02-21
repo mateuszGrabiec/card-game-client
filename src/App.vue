@@ -1,18 +1,31 @@
 <template>
   <div id="app">
+    <nav class="navbar">
+
+      <router-link class="navbar-item" to="/">Home</router-link>
+      <div class="navbar-end">
+        <div class="buttons">
+          <router-link class="navbar-item button" to="/login">Login</router-link>
+          <router-link class="navbar-item button" to="/register">Register</router-link>
+        </div>
+      </div>
+    </nav>
+
+
+    <router-view />
     <!-- <BlockGame /> -->
-    <Board/>
+    <!-- <Board/> -->
   </div>
 </template>
 
 <script>
 
-import Board from "./components/KonvaTest"
+// import Board from "./components/KonvaTest"
 
 export default {
   name: "App",
   components: {
-    Board
+    //Board
   }
 };
 </script>
