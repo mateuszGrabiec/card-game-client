@@ -12,7 +12,8 @@
     "konva": "^5.0.2",
     "socket.io": "^2.3.0",
     "vue": "^2.6.11",
-    "vue-konva": "^2.1.1"
+    "vue-konva": "^2.1.1",
+    "vue-router": "^3.5.1"
   },
   "devDependencies": {
     "@vue/cli-plugin-babel": "~4.2.0",
